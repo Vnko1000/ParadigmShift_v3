@@ -226,7 +226,7 @@ Animator:
   m_GameObject: {fileID: 183233028}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 193c6f790d254ad09fa1cf4dbbee7134, type: 2}
+  m_Controller: {fileID: 9100000, guid: 92ce7f69451185647b4c7e70bb1b4aa2, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -445,6 +445,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   moveSpeed: 5
+  runSpeedThreshold: 5
+  slideSpeedThreshold: 8
   jump: 8
   GroundCheck: {fileID: 1722766348}
   groundcheckSize: {x: 0.3, y: 0.2}
