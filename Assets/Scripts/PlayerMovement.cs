@@ -4,13 +4,12 @@ using UnityEngine.InputSystem;
 public class PlayerMovement : MonoBehaviour
 {
     [SerializeField] private float moveSpeed = 7f;
-    [SerializeField] private float runSpeedThreshold = 5f;   // Speed > este valor = Run
-    [SerializeField] private float slideSpeedThreshold = 8f; // Speed > este valor = Slide
     [SerializeField] private float runSpeedMultiplier = 1.8f;
 
     private Rigidbody2D rb;
     private float horizontalInput;
     private bool isRunning;
+    private bool isSliding;
     public float jump = 8f;
 
     [SerializeField] public Transform GroundCheck;
@@ -35,8 +34,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
+        // BUG FIX: antes se calculaba currentSpeed pero se usaba moveSpeed en linearVelocity
         float currentSpeed = moveSpeed * (isRunning ? runSpeedMultiplier : 1f);
-        rb.linearVelocity = new Vector2(horizontalInput * moveSpeed, rb.linearVelocity.y);
+        rb.linearVelocity = new Vector2(horizontalInput * currentSpeed, rb.linearVelocity.y);
     }
 
     // --- Input Actions ---
@@ -48,25 +48,53 @@ public class PlayerMovement : MonoBehaviour
 
     public void Sprint(InputAction.CallbackContext context)
     {
-        isRunning = context.ReadValueAsButton();
+        // BUG FIX: usar started/canceled es más confiable que ReadValueAsButton
+        if (context.started)
+            isRunning = true;
+        else if (context.canceled)
+            isRunning = false;
     }
 
     public void Jump(InputAction.CallbackContext context)
     {
-        if (!context.performed || !isGrounded) { return; }
+        if (!context.performed || !isGrounded) return;
 
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, jump);
         animator.SetTrigger("Jump");
+    }
+
+    public void Slide(InputAction.CallbackContext context)
+    {
+        if (context.started && isGrounded && horizontalInput != 0)
+        {
+            isSliding = true;
+            animator.SetBool("IsSliding", true);
+        }
+        else if (context.canceled)
+        {
+            isSliding = false;
+            animator.SetBool("IsSliding", false);
+        }
+    }
+
+    public void Duck(InputAction.CallbackContext context)
+    {
+        // TODO: ajustar collider al agacharse si es necesario
+        if (context.started && isGrounded)
+            animator.SetBool("IsDucking", true);
+        else if (context.canceled)
+            animator.SetBool("IsDucking", false);
     }
 
     // --- Animator ---
 
     void UpdateAnimator()
     {
-        // Speed = velocidad horizontal real de Rigidbody2D
         float speed = Mathf.Abs(rb.linearVelocity.x);
         animator.SetFloat("Speed", speed);
         animator.SetBool("IsGrounded", isGrounded);
+        animator.SetBool("IsRunning", isRunning);
+        // IsSliding e IsDucking se setean directo en los callbacks
     }
 
     // --- Helpers ---
@@ -78,7 +106,7 @@ public class PlayerMovement : MonoBehaviour
 
     void CheckFlip()
     {
-        if (horizontalInput == 0) { return; }
+        if (horizontalInput == 0) return;
 
         bool movingRight = horizontalInput > 0;
         bool facingRight = transform.localScale.x > 0;
