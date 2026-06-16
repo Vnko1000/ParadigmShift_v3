@@ -18,11 +18,26 @@ public class PlayerMovement : MonoBehaviour
     private bool isGrounded;
 
     private Animator animator;
+    private CapsuleCollider2D capsuleCollider;
+
+    [Header("Slide Collider")]
+    [SerializeField] private float slideColliderHeight = 0.5f;
+    [SerializeField] private float slideColliderYOffset = -0.8f;
+
+    private Vector2 defaultColliderSize;
+    private Vector2 defaultColliderOffset;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        capsuleCollider = GetComponent<CapsuleCollider2D>();
+
+        if (capsuleCollider != null)
+        {
+            defaultColliderSize = capsuleCollider.size;
+            defaultColliderOffset = capsuleCollider.offset;
+        }
     }
 
     void Update()
@@ -69,11 +84,13 @@ public class PlayerMovement : MonoBehaviour
         {
             isSliding = true;
             animator.SetBool("IsSliding", true);
+            SetSlideCollider();
         }
         else if (context.canceled)
         {
             isSliding = false;
             animator.SetBool("IsSliding", false);
+            ResetCollider();
         }
     }
 
@@ -81,9 +98,15 @@ public class PlayerMovement : MonoBehaviour
     {
         // TODO: ajustar collider al agacharse si es necesario
         if (context.started && isGrounded)
+        {
             animator.SetBool("IsDucking", true);
+            SetSlideCollider();
+        }
         else if (context.canceled)
+        {
             animator.SetBool("IsDucking", false);
+            ResetCollider();
+        }
     }
 
     // --- Animator ---
@@ -95,6 +118,30 @@ public class PlayerMovement : MonoBehaviour
         animator.SetBool("IsGrounded", isGrounded);
         animator.SetBool("IsRunning", isRunning);
         // IsSliding e IsDucking se setean directo en los callbacks
+    }
+
+    // --- Collider (Slide) ---
+
+    void SetSlideCollider()
+    {
+        if (capsuleCollider == null) return;
+
+        // Calcula el Y de los pies a partir del collider original (de pie)
+        float feetY = defaultColliderOffset.y - (defaultColliderSize.y / 2f);
+
+        // Centra el nuevo collider (más bajo) para que su base siga en los pies
+        float slideOffsetY = (feetY + (slideColliderHeight / 2f)) + 0.3f;
+
+        capsuleCollider.size = new Vector2(defaultColliderSize.x, slideColliderHeight);
+        capsuleCollider.offset = new Vector2(defaultColliderOffset.x, slideOffsetY);
+    }
+
+    void ResetCollider()
+    {
+        if (capsuleCollider == null) return;
+
+        capsuleCollider.size = defaultColliderSize;
+        capsuleCollider.offset = defaultColliderOffset;
     }
 
     // --- Helpers ---
