@@ -22,7 +22,7 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("Slide Collider")]
     [SerializeField] private float slideColliderHeight = 0.5f;
-    [SerializeField] private float slideColliderYOffset = -0.8f;
+    [SerializeField] private float slideColliderYOffset;
 
     private Vector2 defaultColliderSize;
     private Vector2 defaultColliderOffset;
@@ -127,13 +127,13 @@ public class PlayerMovement : MonoBehaviour
         if (capsuleCollider == null) return;
 
         // Calcula el Y de los pies a partir del collider original (de pie)
-        float feetY = defaultColliderOffset.y - (defaultColliderSize.y / 2f);
+        float feetY = defaultColliderOffset.y - (defaultColliderSize.y / 2f) + 0.3f;
 
         // Centra el nuevo collider (más bajo) para que su base siga en los pies
-        float slideOffsetY = (feetY + (slideColliderHeight / 2f)) + 0.3f;
+        slideColliderYOffset = feetY + (slideColliderHeight / 2f);
 
         capsuleCollider.size = new Vector2(defaultColliderSize.x, slideColliderHeight);
-        capsuleCollider.offset = new Vector2(defaultColliderOffset.x, slideOffsetY);
+        capsuleCollider.offset = new Vector2(defaultColliderOffset.x, slideColliderYOffset);
     }
 
     void ResetCollider()
