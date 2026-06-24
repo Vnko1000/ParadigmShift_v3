@@ -3,13 +3,14 @@ using UnityEngine.UI;
 using System.Collections;
 
 /// <summary>
-/// HUDManager - Gestiona toda la interfaz de usuario en pantalla.
+/// HUDManager - Gestiona toda la interfaz de usuario en pantalla durante el gameplay.
 /// 
 /// Conecta los sistemas de PlayerHealth y PlayerStress con los elementos visuales de UI.
 /// Maneja:
 /// - Barra de Vida (actualizacion en tiempo real)
 /// - Barra de Estres (con fade in/out dinamico)
 /// - Iconos de estado
+/// - Boton de Pausa
 /// - Animaciones y efectos visuales del HUD
 /// 
 /// Requiere: Canvas con el prefab de HUD asignado.
@@ -33,7 +34,12 @@ public class HUDManager : MonoBehaviour
     [SerializeField] private TMPro.TextMeshProUGUI stressText;
     [SerializeField] private CanvasGroup stressContainerCanvasGroup;
 
-    [Header("Configuracion de Estilo")]
+    [Header("Elementos de UI - Boton de Pausa")]
+    [SerializeField] private Button pauseButton;
+    [SerializeField] private Image pauseButtonImage;
+    [SerializeField] private CanvasGroup pauseButtonCanvasGroup;
+
+    [Header("Configuracion de Estilo - Vida")]
     [Tooltip("Color de la barra de vida cuando esta alta (>60%)")]
     [SerializeField] private Color healthColorHigh = new Color(0.2f, 0.8f, 1f);
     [Tooltip("Color de la barra de vida cuando esta media (30-60%)")]
@@ -41,13 +47,10 @@ public class HUDManager : MonoBehaviour
     [Tooltip("Color de la barra de vida cuando esta baja (<30%)")]
     [SerializeField] private Color healthColorLow = new Color(1f, 0.2f, 0.2f);
 
-    [Tooltip("Color de la barra de estres normal")]
+    [Header("Configuracion de Estilo - Estres")]
     [SerializeField] private Color stressColorNormal = new Color(1f, 0.7f, 0.2f);
-    [Tooltip("Color de la barra de estres en advertencia")]
     [SerializeField] private Color stressColorWarning = new Color(1f, 0.5f, 0.1f);
-    [Tooltip("Color de la barra de estres en critico")]
     [SerializeField] private Color stressColorCritical = new Color(1f, 0.1f, 0.1f);
-    [Tooltip("Color de la barra durante burnout")]
     [SerializeField] private Color stressColorBurnout = new Color(0.5f, 0f, 0f);
 
     [Header("Animacion - Barra de Estres (Fade In/Out)")]
@@ -76,6 +79,7 @@ public class HUDManager : MonoBehaviour
     private Coroutine damageFlashCoroutine;
     private Vector3 healthBarDefaultScale;
     private Vector3 stressBarDefaultScale;
+    private PauseMenu pauseMenu;
 
     void Start()
     {
@@ -88,6 +92,9 @@ public class HUDManager : MonoBehaviour
             healthBarDefaultScale = healthBarFrame.transform.localScale;
         if (stressBarFrame != null)
             stressBarDefaultScale = stressBarFrame.transform.localScale;
+
+        // Configurar boton de pausa
+        SetupPauseButton();
     }
 
     void OnDestroy()
@@ -174,6 +181,34 @@ public class HUDManager : MonoBehaviour
             damageFlashOverlay.color = Color.clear;
     }
 
+    // ============ BOTON DE PAUSA ============
+
+    private void SetupPauseButton()
+    {
+        // Buscar el PauseMenu en la escena
+        pauseMenu = FindFirstObjectByType<PauseMenu>();
+
+        if (pauseButton != null)
+        {
+            pauseButton.onClick.AddListener(OnPauseButtonClicked);
+        }
+    }
+
+    private void OnPauseButtonClicked()
+    {
+        if (pauseMenu != null)
+        {
+            pauseMenu.TogglePause();
+        }
+        else
+        {
+            Debug.LogWarning("[HUDManager] No se encontro PauseMenu. Creando uno temporal...");
+            // Fallback: crear un PauseMenu basico
+            pauseMenu = gameObject.AddComponent<PauseMenu>();
+            pauseMenu.TogglePause();
+        }
+    }
+
     // ============ ACTUALIZACION DE BARRAS ============
 
     /// <summary>
@@ -198,12 +233,6 @@ public class HUDManager : MonoBehaviour
 
         if (healthText != null)
             healthText.text = $"{current}/{max}";
-
-        // Si la vida es baja, pulsar la barra
-        if (percent <= 0.3f && healthBarFrame != null)
-        {
-            // El pulso se maneja en Update
-        }
     }
 
     /// <summary>
@@ -250,8 +279,6 @@ public class HUDManager : MonoBehaviour
 
     private void OnStressWarning(bool isCritical)
     {
-        // El color ya se actualiza en UpdateStressBar
-        // Aqui podrias agregar efectos adicionales (sonido, shake, etc.)
         ShowStressBar();
     }
 
@@ -286,7 +313,7 @@ public class HUDManager : MonoBehaviour
 
     private void HideStressBar()
     {
-        if (isStressVisible && !playerStress.IsBurnedOut)
+        if (isStressVisible && playerStress != null && !playerStress.IsBurnedOut)
         {
             isStressVisible = false;
             if (stressFadeCoroutine != null)
